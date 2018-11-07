@@ -1,0 +1,15 @@
+---
+title: "Exploratory Analysis"
+output: html_notebook
+---
+
+```{r}
+library(dplyr)
+library(readr)
+
+source("../code/lib.R")
+
+dataset = import_dataset("../data/pretty/dataset.csv")
+View(dataset)
+```
+
