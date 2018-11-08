@@ -5,11 +5,49 @@ output: html_notebook
 
 ```{r}
 library(dplyr)
-library(readr)
+library(ggplot2)
+library(hrbrthemes)
+library(ggmap)
+
+theme_set(theme_ipsum_rc())
 
 source("../code/lib.R")
 
 dataset = import_dataset("../data/pretty/dataset.csv")
-View(dataset)
+# View(dataset)
 ```
+
+According to the Deaths at the Borders project, around `r NROW(dataset)` persons died between `r min(dataset$year)` and `r max(dataset$year)`.
+
+## Identification of incidents
+
+```{r}
+dataset %>%
+  count(incident_number) %>%
+  filter(n > 10, !is.na(incident_number)) %>%
+  ggplot(aes(x = reorder(incident_number, n), y = n)) +
+    geom_bar(stat = "identity", fill = "red2") +
+    coord_flip() +
+    labs(title = "Most tragic incidents in the dataset", x = NULL, y = "Number of victims") +
+    theme(panel.grid.major.y = element_blank()) +
+    annotate("text", x = 28.5, y = 275, label = "atop(bold('Lampedusa boat tragedy'), 'There was a huge mobilization to find the victims')", parse = T) +
+    geom_segment(data = data.frame(x1 = 30.5, y1 = 275, x2 = 33.5, y2 = 275),
+                 aes(x = x1, y = y1, xend = x2, yend = y2), size = 1, color = "grey60")
+```
+
+
+```{r}
+dataset %>%
+  ggplot(aes(x = year, color = country)) +
+    geom_line(stat = "count") +
+    scale_y_sqrt() +
+    labs(title = "Deaths at the borders during the years",
+         x = "Year", y = "Number of victims", color = "Country")
+```
+
+```{r}
+europe_map = get_map("mediterranean sea")
+ggmap(europe_map)
+```
+
 
