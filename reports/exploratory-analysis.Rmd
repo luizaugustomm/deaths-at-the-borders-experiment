@@ -7,7 +7,6 @@ output: html_notebook
 library(dplyr)
 library(ggplot2)
 library(hrbrthemes)
-library(ggmap)
 
 theme_set(theme_ipsum_rc())
 
@@ -26,7 +25,7 @@ dataset %>%
   count(incident_number) %>%
   filter(n > 10, !is.na(incident_number)) %>%
   ggplot(aes(x = reorder(incident_number, n), y = n)) +
-    geom_bar(stat = "identity", fill = "red2") +
+    geom_bar(stat = "identity") +
     coord_flip() +
     labs(title = "Most tragic incidents in the dataset", x = NULL, y = "Number of victims") +
     theme(panel.grid.major.y = element_blank()) +
@@ -46,8 +45,14 @@ dataset %>%
 ```
 
 ```{r}
-europe_map = get_map("mediterranean sea")
-ggmap(europe_map)
+dataset %>%
+  count(route) %>%
+  ggplot(aes(x = reorder(route, n), y = n)) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    labs(title = "Deaths per route",
+         x = "Route", y = "Number of victims")
 ```
+
 
 

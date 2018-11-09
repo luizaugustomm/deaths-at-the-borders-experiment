@@ -18,7 +18,7 @@ import_dataset = function(dataset_name) {
     descriptions_of_race = col_factor(NULL)
   )
   
-  dataset = read_csv(dataset_name, col_types = dataset_cols)
-  
-  return(dataset)
+  read_csv(dataset_name, col_types = dataset_cols)
 }
+
+
