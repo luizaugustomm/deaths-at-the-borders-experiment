@@ -6,6 +6,7 @@ output: html_notebook
 ```{r}
 library(dplyr)
 library(ggplot2)
+library(ggrepel)
 library(hrbrthemes)
 
 theme_set(theme_ipsum_rc())
@@ -13,6 +14,7 @@ theme_set(theme_ipsum_rc())
 source("../code/lib.R")
 
 dataset = import_dataset("../data/pretty/dataset.csv")
+missing_migrants = read_csv("../data/raw/MissingMigrants-Global-2018-11-07T14-37-40.csv")
 # View(dataset)
 ```
 
@@ -55,4 +57,85 @@ dataset %>%
 ```
 
 
+
+```{r}
+dataset %>%
+  count(circumstances) %>%
+  filter(!is.na(circumstances), n > 5) %>%
+  ggplot(aes(x = reorder(circumstances, n), y = n)) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    labs(title = "Most frequent circumstances",
+         x = NULL, y = "Frequency")
+```
+
+
+```{r}
+word_count = data.frame(count_words(dataset$details_of_incident))
+word_count$word <- rownames(word_count)
+word_count %>%
+  rename(n = 1) %>%
+  filter(!grepl(pattern = "[0-9]+", x = word)) %>%
+  slice(1:50) %>%
+  ggplot(aes(x = 1, y = 1, size = n, label = word)) +
+    geom_text_repel(segment.size = 0, force = 100) +
+    scale_size(range = c(2, 10), guide = FALSE) +
+    scale_y_continuous(breaks = NULL) +
+    scale_x_continuous(breaks = NULL) +
+    labs(x = '', y = '')
+```
+
+
+```{r}
+dataset %>%
+  count(nationality) %>%
+  filter(!is.na(nationality), n > 5) %>%
+  ggplot(aes(x = reorder(nationality, n), y = n)) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    labs(title = "Most frequent nationalities",
+         x = NULL, y = "Frequency")
+```
+
+
+```{r}
+dataset %>%
+  count(descriptions_of_race) %>%
+  filter(!is.na(descriptions_of_race)) %>%
+  ggplot(aes(x = reorder(descriptions_of_race, n), y = n)) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    labs(title = "Most frequent descriptions of race",
+         x = NULL, y = "Frequency")
+```
+
+```{r}
+dataset %>%
+  count(sex) %>%
+  filter(!is.na(sex)) %>%
+  ggplot(aes(x = reorder(sex, n), y = n)) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    labs(title = "Most frequent sex",
+         x = NULL, y = "Frequency")
+```
+
+```{r}
+dataset %>%
+  filter(!is.na(age)) %>%
+  ggplot(aes(x = age)) +
+    geom_histogram() +
+    labs(title = "Ages of victims",
+         x = "Age", y = "Frequency")
+```
+
+# Missing migrants
+
+```{r}
+missing_migrants %>%
+  group_by(`UNSD Geographical Grouping`) %>%
+  summarise(n = sum(`Number Dead`)) %>%
+  ggplot(aes(x = `UNSD Geographical Grouping`, y = n)) +
+    geom_bar(stat = "identity") + coord_flip()
+```
 

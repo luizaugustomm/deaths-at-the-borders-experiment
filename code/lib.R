@@ -1,4 +1,5 @@
 library(tidyverse)
+library(tm)
 
 import_dataset = function(dataset_name) {
   
@@ -21,4 +22,17 @@ import_dataset = function(dataset_name) {
   read_csv(dataset_name, col_types = dataset_cols)
 }
 
+
+count_words = function(phrases) {
+  phrases %>%
+    VectorSource() %>%
+    Corpus() %>%
+    tm_map(content_transformer(tolower)) %>%
+    tm_map(removePunctuation) %>%
+    tm_map(stripWhitespace) %>%
+    tm_map(removeWords, stopwords("english")) %>%
+    DocumentTermMatrix() %>%
+    as.matrix() %>%
+    colSums()
+}
 

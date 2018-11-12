@@ -47,6 +47,9 @@ dataset = raw_database %>%
          labels = "Label(s)_used_in_administration",
          descriptions_of_race = "Descriptions_of_race/ethnicity")
 
+
+missing_migrants = read_csv("data/raw/MissingMigrants-Global-2018-11-07T14-37-40.csv")
+
 # Organizing column names
 names(dataset) = tolower(names(dataset)) 
  
