@@ -15,6 +15,9 @@ source("../code/lib.R")
 
 dataset = import_dataset("../data/pretty/dataset.csv")
 missing_migrants = read_csv("../data/raw/MissingMigrants-Global-2018-11-07T14-37-40.csv")
+migrants = missing_migrants %>%
+  filter(is.element(`Region of Incident`, c("Sub-Saharan Africa", "Middle East")), # These regions have similar number of incidents
+         `Reported Year` > 2015) # Only considered recent data
 # View(dataset)
 ```
 
@@ -137,5 +140,26 @@ missing_migrants %>%
   summarise(n = sum(`Number Dead`)) %>%
   ggplot(aes(x = `UNSD Geographical Grouping`, y = n)) +
     geom_bar(stat = "identity") + coord_flip()
+```
+
+```{r}
+missing_migrants %>%
+  count(`Region of Incident`) %>%
+  filter(!is.na(`Region of Incident`)) %>%
+  ggplot(aes(x = reorder(`Region of Incident`, n), y = n)) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    labs(title = "Most frequent regions",
+         x = NULL, y = "Frequency")
+```
+
+```{r}
+
+
+missing_migrants %>%
+  # group_by(`Region of Incident`, `Reported Year`) %>%
+  # summarise(`Number Dead` = median(`Number Dead`)) %>%
+  ggplot(aes(x = `Reported Year`, y = `Number Dead`, color = `Region of Incident`)) +
+  geom_jitter() + scale_y_sqrt() + facet_wrap(~`Region of Incident`)
 ```
 
