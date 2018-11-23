@@ -1,42 +1,177 @@
 ---
 title: "Exploratory Analysis"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
-```{r}
+```{r, include=FALSE}
 library(dplyr)
 library(ggplot2)
 library(ggrepel)
 library(hrbrthemes)
+library(stringr)
 
 theme_set(theme_ipsum_rc())
 
 source("../code/lib.R")
 
-dataset = import_dataset("../data/pretty/dataset.csv")
-missing_migrants = read_csv("../data/raw/MissingMigrants-Global-2018-11-07T14-37-40.csv")
-migrants = missing_migrants %>%
-  filter(is.element(`Region of Incident`, c("Sub-Saharan Africa", "Middle East")), # These regions have similar number of incidents
-         `Reported Year` > 2015) # Only considered recent data
-# View(dataset)
+knitr::opts_chunk$set(fig.width = 10, collapse = TRUE, echo = FALSE)
+```
+# MISSING MIGRANTS
+
+```{r, include=FALSE}
+missing_migrants = read_csv("../data/pretty/missing-migrants.csv")
 ```
 
-According to the Deaths at the Borders project, around `r NROW(dataset)` persons died between `r min(dataset$year)` and `r max(dataset$year)`.
+The initial dataset contains `r NROW(missing_migrants)` data items and the following data attributes.
+
+```{r results='asis'} 
+descriptions = c("The region in which the incident took place",
+                 "Estimated date of death",
+                 "The year in which the incident occurred",
+                 "The sum of the number of dead and missing",
+                 "The number of females found dead or missing. If unknown, it is left blank.",
+                 "The number of males found dead or missing. If unknown, it is left blank.",
+                 "The number of individuals under the age of 18 found dead or missing. If unknown, it is left blank.",
+                 "The number of migrants that survived the incident, if known",
+                 "The determination of conditions resulting in the migrant's death",
+                 "Place where the death(s) occurred or where the body or bodies were found",
+                 "Place where the death(s) occurred or where the body or bodies were found",
+                 "Articles that reported the incident")
+
+cat(paste(paste0("- **", names(missing_migrants)),
+          descriptions, sep = "** "), sep = '\n')
+``` 
+
+One of the dimensions I intend to investigate is the **information richness**. So I need a dataset with as much complete data as possible. The first decision is considering only the rows that contain the number of dead women and children. 
+
+```{r}
+missing_migrants = missing_migrants %>%
+  filter(#!is.na(women), !is.na(children),
+         year > 2016)
+```
+
+The resulting dataset contains `r NROW(missing_migrants)` now.
+
+```{r}
+missing_migrants %>%
+  count(region) %>%
+  filter(!is.na(region)) %>%
+  ggplot(aes(x = reorder(region, n), y = n)) +
+    geom_bar(stat = "identity") +
+    coord_flip() +
+    labs(title = "Number of incidents per region",
+         x = NULL, y = "Frequency")
+```
+
+```{r}
+migrants_sample = missing_migrants %>%
+  filter(region == "Middle East") %>%
+  arrange(desc(year)) %>%
+  head(3)
+```
+
+
+
+
+```{r}
+missing_migrants %>%
+  mutate(year = as.factor(year)) %>%
+  ggplot() +
+  geom_jitter(aes(x = year, y = deaths), color = "red", width = 0.2) +
+  geom_jitter(aes(x = year, y = survivors), color = "blue", width = 0.2) +
+  scale_y_sqrt() + facet_wrap(~region) +
+  labs(title = "Deads and survivors per region",
+       subtitle = "Each incident corresponds to two dots: red for dead and blue for survivors",
+       y = "Number of deads and survivors per incident",
+       x = "Year")
+
+ggsave("deads_and_survivors_per_region.png", width = 10, height = 8)
+```
+
+```{r}
+data_sample = missing_migrants %>%
+  filter(!is.element(region, c("Caribbean",
+                               "Central America",
+                               "Horn of Africa",
+                               "North Africa",
+                               "South America",
+                               "Central Asia",
+                               "East Asia",
+                               "South Asia",
+                               "North America",
+                               "US-Mexico Border",
+                               "Europe", # Removed to avoid bias (participants are European),
+                               "Mediterranean" # Removed because it has much more data than the others
+                               ))) %>%
+  group_by(region, year) %>%
+  summarise(deaths = sum(deaths, na.rm = T), survivors = sum(survivors, na.rm = T)) %>%
+  mutate(death_survivor_rate = deaths / survivors)
+
+data_sample %>%
+  ggplot(aes(x = region, y = death_survivor_rate)) +
+    geom_bar(stat = "identity")
+```
+
+```{r}
+data_sample %>%
+  ggplot(aes(x = year, y = death_survivor_rate, color = region)) +
+    geom_line(size = 1.1) +
+    geom_point() +
+    geom_hline(yintercept = 0, size = 1.3, alpha = 0.5) +
+    scale_x_continuous(breaks = seq(2016, 2018, 1))
+```
+
+```{r}
+data_sample = data_sample %>%
+  filter(!is.element(region, c("North Africa",
+                               "Horn of Africa",
+                               "US-Mexico Border",
+                               "Sub-Saharan Africa"
+                               )))
+data_sample %>%
+  ggplot(aes(x = year, y = death_survivor_rate, color = region)) +
+    geom_line(size = 1.1) +
+    geom_point() +
+    geom_hline(yintercept = 0, size = 1.3, alpha = 0.5) +
+    scale_x_continuous(breaks = seq(2016, 2018, 1))
+```
+
+```{r}
+data_sample = missing_migrants %>%
+  filter(year > 2015,
+         is.element(region, c("Caribbean",
+                              "Central America",
+                              "Middle East",
+                              "Southeast Asia")))
+data_sample %>%  
+  ggplot() +
+    geom_jitter(aes(x = year, y = deaths), color = "red") +
+    geom_jitter(aes(x = year, y = survivors), color = "blue") +
+    scale_y_sqrt() + scale_x_continuous(breaks = seq(2016, 2018, 1)) +
+    facet_wrap(~region)
+```
+
+
+# DEATHS AT THE BORDERS
 
 ## Identification of incidents
 
 ```{r}
-dataset %>%
-  count(incident_number) %>%
-  filter(n > 10, !is.na(incident_number)) %>%
-  ggplot(aes(x = reorder(incident_number, n), y = n)) +
-    geom_bar(stat = "identity") +
-    coord_flip() +
-    labs(title = "Most tragic incidents in the dataset", x = NULL, y = "Number of victims") +
-    theme(panel.grid.major.y = element_blank()) +
-    annotate("text", x = 28.5, y = 275, label = "atop(bold('Lampedusa boat tragedy'), 'There was a huge mobilization to find the victims')", parse = T) +
-    geom_segment(data = data.frame(x1 = 30.5, y1 = 275, x2 = 33.5, y2 = 275),
-                 aes(x = x1, y = y1, xend = x2, yend = y2), size = 1, color = "grey60")
+dataset = import_dataset("../data/pretty/deaths-at-the-borders.csv")
+
+# dataset %>%
+#   count(incident_number) %>%
+#   filter(n > 10, !is.na(incident_number)) %>%
+#   ggplot(aes(x = reorder(incident_number, n), y = n)) +
+#     geom_bar(stat = "identity") +
+#     coord_flip() +
+#     labs(title = "Most tragic incidents in the dataset", x = NULL, y = "Number of victims") +
+#     theme(panel.grid.major.y = element_blank()) +
+#     annotate("text", x = 28.5, y = 275, label = "atop(bold('Lampedusa boat tragedy'), 'There was a huge mobilization to find the victims')", parse = T) +
+#     geom_segment(data = data.frame(x1 = 30.5, y1 = 275, x2 = 33.5, y2 = 275),
+#                  aes(x = x1, y = y1, xend = x2, yend = y2), size = 1, color = "grey60")
 ```
 
 
@@ -130,36 +265,5 @@ dataset %>%
     geom_histogram() +
     labs(title = "Ages of victims",
          x = "Age", y = "Frequency")
-```
-
-# Missing migrants
-
-```{r}
-missing_migrants %>%
-  group_by(`UNSD Geographical Grouping`) %>%
-  summarise(n = sum(`Number Dead`)) %>%
-  ggplot(aes(x = `UNSD Geographical Grouping`, y = n)) +
-    geom_bar(stat = "identity") + coord_flip()
-```
-
-```{r}
-missing_migrants %>%
-  count(`Region of Incident`) %>%
-  filter(!is.na(`Region of Incident`)) %>%
-  ggplot(aes(x = reorder(`Region of Incident`, n), y = n)) +
-    geom_bar(stat = "identity") +
-    coord_flip() +
-    labs(title = "Most frequent regions",
-         x = NULL, y = "Frequency")
-```
-
-```{r}
-
-
-missing_migrants %>%
-  # group_by(`Region of Incident`, `Reported Year`) %>%
-  # summarise(`Number Dead` = median(`Number Dead`)) %>%
-  ggplot(aes(x = `Reported Year`, y = `Number Dead`, color = `Region of Incident`)) +
-  geom_jitter() + scale_y_sqrt() + facet_wrap(~`Region of Incident`)
 ```
 

@@ -3,6 +3,7 @@ library(readr)
 library(dplyr)
 
 # Deaths at the Borders Database, from 1991 to 2014
+# http://www.borderdeaths.org/?page_id=7
 deaths_at_the_borders = read_csv('data/raw/Deaths-at-the-Borders-Database-for-the-Southern-EU-public-version-12-May-2016.csv.csv', skip = 2) %>%
   mutate(Estimated_age = as.integer(lapply(lapply(strsplit(Estimated_age, "-"), as.integer), mean))) %>% # Transforms estimated age such as 20-30 to a rounded mean
   mutate(Age = coalesce(Age, Estimated_age)) %>% # Replaces NA values of age to the estimated age
@@ -39,6 +40,7 @@ write_csv(deaths_at_the_borders, "data/pretty/deaths-at-the-borders.csv")
 
 
 # Missing Migrants Database, from 2014 to 2018
+# http://missingmigrants.iom.int/methodology
 missing_migrants = read_csv("data/raw/MissingMigrants-Global-2018-11-07T14-37-40.csv") %>%
   select(`Region` = `Region of Incident`, #The region in which an incident took place
          `Date` = `Reported Date`, # Estimated date of death
@@ -49,6 +51,7 @@ missing_migrants = read_csv("data/raw/MissingMigrants-Global-2018-11-07T14-37-40
          `Women` = `Number of Females`, # Indicates the number of females found dead or missing. If unknown, it is left blank.
          `Men` = `Number of Males`, # Indicates the number of males found dead or missing. If unknown, it is left blank.
          `Children` = `Number of Children`, # Indicates the number of individuals under the age of 18 found dead or missing. If unknown, it is left blank.
+         `Survivors` = `Number of Survivors`, # The number of migrants that survived the incident, if known
          `Cause of Death`, # The determination of conditions resulting in the migrant's death
          `Location Description`, # Place where the death(s) occurred or where the body or bodies were found.
          `Location Coordinates`, # Place where the death(s) occurred or where the body or bodies were found.
